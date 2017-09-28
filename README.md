@@ -1,0 +1,1 @@
+# Entity Class Formatter
