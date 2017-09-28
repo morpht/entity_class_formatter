@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * @file
+ * Entity Class Formatter module.
+ */
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function entity_class_formatter_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+
+  // Skip entities which are not holding fields.
+  if (!($entity instanceof FieldableEntityInterface)) {
+    return;
+  }
+
+  // Process all fields.
+  foreach ($display->getComponents() as $name => $component) {
+
+    // Only if entity_class_formatter is used.
+    if (isset($component['type']) && $component['type'] === 'entity_class_formatter') {
+      // Get field object.
+      $field = $entity->get($name);
+
+      // Only for entity reference field type.
+      if ($field instanceof EntityReferenceFieldItemListInterface) {
+
+        // Process all entities referenced by current field.
+        foreach ($field->referencedEntities() as $entity) {
+          $title = $entity->label();
+
+          // Fill title as a class into the entity if is not empty.
+          if (!empty($title)) {
+            $build['#attributes']['class'][] = Html::getClass($title);
+          }
+        }
+      }
+      // Process simple fields.
+      else {
+
+        // Process all values of current field.
+        foreach ($entity->get($name)->getValue() as $value) {
+
+          // Fill value as a class into the entity if is not empty.
+          if (!empty($value['value'])) {
+            $build['#attributes']['class'][] = Html::getClass($value['value']);
+          }
+        }
+      }
+    }
+  }
+}

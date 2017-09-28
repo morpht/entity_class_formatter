@@ -1,0 +1,7 @@
+name: Entity Class Formatter
+type: module
+description: Apply class on the entity if it's field is using this formatter.
+core: 8.x
+package: Field types
+dependencies:
+  - drupal:field
