@@ -50,7 +50,11 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
           // Fill value as a class into the entity if is not empty.
           if (!empty($value['value'])) {
-            $build['#attributes']['class'][] = Html::getClass($value['value']);
+
+            // Split value into multiple classes when spaces are used.
+            foreach (explode(' ', $value['value']) as $class) {
+              $build['#attributes']['class'][] = Html::getClass($class);
+            }
           }
         }
       }
