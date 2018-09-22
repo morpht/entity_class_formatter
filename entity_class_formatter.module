@@ -33,8 +33,8 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
       if ($field instanceof EntityReferenceFieldItemListInterface) {
 
         // Process all entities referenced by current field.
-        foreach ($field->referencedEntities() as $entity) {
-          $title = $entity->label();
+        foreach ($field->referencedEntities() as $referenced_entity) {
+          $title = $referenced_entity->label();
 
           // Fill title as a class into the entity if is not empty.
           if (!empty($title)) {
