@@ -26,8 +26,8 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
     // Only if entity_class_formatter is used.
     if (isset($component['type']) && $component['type'] === 'entity_class_formatter') {
-      // Get field object.
       $field = $entity->get($name);
+      $field_definition = $field->getFieldDefinition();
 
       $prefix = '';
       // Get prefix to be attached before.
@@ -42,24 +42,34 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
       // Only for entity reference field type.
       if ($field instanceof EntityReferenceFieldItemListInterface) {
-
-        // Process all entities referenced by current field.
         foreach ($field->referencedEntities() as $referenced_entity) {
-          $title = $referenced_entity->label();
 
-          // Fill title as a class into the entity if is not empty.
+          // Fill title as a class if not empty.
+          $title = $referenced_entity->label();
           if (!empty($title)) {
             $build['#attributes']['class'][] = Html::getClass($prefix . $title . $suffix);
           }
         }
       }
-      // Process simple fields.
-      else {
 
-        // Process all values of current field.
+      // Only for boolean field type.
+      elseif ($field_definition->getType() === 'boolean') {
+
+        // Fill configured label as a class based on value.
+        if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
+          $label = $field_definition->getSetting('on_label');
+        }
+        else {
+          $label = $field_definition->getSetting('off_label');
+        }
+        $build['#attributes']['class'][] = Html::getClass($prefix . $label . $suffix);
+      }
+
+      // For other simple fields.
+      else {
         foreach ($field->getValue() as $item) {
 
-          // Fill value as a class into the entity if is not empty.
+          // Fill value as a class if not empty.
           if (!empty($item['value'])) {
 
             // Split value into multiple classes when spaces are used.
