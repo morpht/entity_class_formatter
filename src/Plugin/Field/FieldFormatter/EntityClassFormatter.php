@@ -13,9 +13,10 @@ use Drupal\Core\Form\FormStateInterface;
  *   id = "entity_class_formatter",
  *   label = @Translation("Entity Class"),
  *   field_types = {
- *     "string",
+ *     "boolean",
+ *     "entity_reference",
  *     "list_string",
- *     "entity_reference"
+ *     "string",
  *   }
  * )
  */

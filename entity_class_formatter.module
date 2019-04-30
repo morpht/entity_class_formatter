@@ -57,13 +57,13 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
       else {
 
         // Process all values of current field.
-        foreach ($field->getValue() as $value) {
+        foreach ($field->getValue() as $item) {
 
           // Fill value as a class into the entity if is not empty.
-          if (!empty($value['value'])) {
+          if (!empty($item['value'])) {
 
             // Split value into multiple classes when spaces are used.
-            foreach (explode(' ', $value['value']) as $class) {
+            foreach (explode(' ', $item['value']) as $class) {
               $build['#attributes']['class'][] = Html::getClass($prefix . $class . $suffix);
             }
           }
