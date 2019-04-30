@@ -29,12 +29,22 @@ class EntityClassFormatterTest extends BrowserTestBase {
   /**
    * Define test class for entity field.
    */
-  const TEST_ENTITY_FIELD_CLASS = 'test-entity-field-class';
+  const ENTITY_CLASS = 'test-entity-field-class';
 
   /**
    * Define test class for string field.
    */
-  const TEST_STRING_FIELD_CLASS = 'test-string-field-class';
+  const STRING_CLASS = 'test-string-field-class';
+
+  /**
+   * Define class prefix.
+   */
+  const CLASS_PREFIX = 'prefix-';
+
+  /**
+   * Define class suffix.
+   */
+  const CLASS_SUFFIX = '-suffix';
 
   /**
    * {@inheritdoc}
@@ -54,7 +64,7 @@ class EntityClassFormatterTest extends BrowserTestBase {
   public function testEntityFieldClass() {
     $field_config = $this->createField('entity_reference');
 
-    $node = $this->drupalCreateNode(['title' => self::TEST_ENTITY_FIELD_CLASS]);
+    $node = $this->drupalCreateNode(['title' => self::ENTITY_CLASS]);
 
     $entity = $this->drupalCreateNode([
       $field_config->getName() => [
@@ -65,7 +75,8 @@ class EntityClassFormatterTest extends BrowserTestBase {
 
     $this->drupalGet($entity->toUrl());
     $assert_session = $this->assertSession();
-    $assert_session->elementExists('css', '.node.' . self::TEST_ENTITY_FIELD_CLASS);
+    $class = self::CLASS_PREFIX . self::ENTITY_CLASS . self::CLASS_SUFFIX;
+    $assert_session->elementExists('css', '.node.' . $class);
   }
 
   /**
@@ -76,14 +87,15 @@ class EntityClassFormatterTest extends BrowserTestBase {
 
     $entity = $this->drupalCreateNode([
       $field_config->getName() => [
-        0 => ['value' => self::TEST_STRING_FIELD_CLASS],
+        0 => ['value' => self::STRING_CLASS],
       ],
     ]);
     $entity->save();
 
     $this->drupalGet($entity->toUrl());
     $assert_session = $this->assertSession();
-    $assert_session->elementExists('css', '.node.' . self::TEST_STRING_FIELD_CLASS);
+    $class = self::CLASS_PREFIX . self::STRING_CLASS . self::CLASS_SUFFIX;
+    $assert_session->elementExists('css', '.node.' . $class);
   }
 
   /**
@@ -122,7 +134,10 @@ class EntityClassFormatterTest extends BrowserTestBase {
     ]);
     $display->setComponent($field_name, [
       'type' => 'entity_class_formatter',
-      'settings' => [],
+      'settings' => [
+        'prefix' => self::CLASS_PREFIX,
+        'suffix' => self::CLASS_SUFFIX,
+      ],
     ]);
     $display->save();
 

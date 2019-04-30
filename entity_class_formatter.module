@@ -29,6 +29,17 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
       // Get field object.
       $field = $entity->get($name);
 
+      $prefix = '';
+      // Get prefix to be attached before.
+      if (!empty($component['settings']['prefix'])) {
+        $prefix = $component['settings']['prefix'];
+      }
+      $suffix = '';
+      // Get suffix to be attached after.
+      if (!empty($component['settings']['suffix'])) {
+        $suffix = $component['settings']['suffix'];
+      }
+
       // Only for entity reference field type.
       if ($field instanceof EntityReferenceFieldItemListInterface) {
 
@@ -38,7 +49,7 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
           // Fill title as a class into the entity if is not empty.
           if (!empty($title)) {
-            $build['#attributes']['class'][] = Html::getClass($title);
+            $build['#attributes']['class'][] = Html::getClass($prefix . $title . $suffix);
           }
         }
       }
@@ -53,7 +64,7 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
             // Split value into multiple classes when spaces are used.
             foreach (explode(' ', $value['value']) as $class) {
-              $build['#attributes']['class'][] = Html::getClass($class);
+              $build['#attributes']['class'][] = Html::getClass($prefix . $class . $suffix);
             }
           }
         }
