@@ -10,6 +10,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\layout_builder\Entity\LayoutEntityDisplayInterface;
 
 /**
  * Implements hook_entity_view_alter().
@@ -20,62 +21,89 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
   if (!($entity instanceof FieldableEntityInterface)) {
     return;
   }
+  $fields = [];
 
-  // Process all fields.
-  foreach ($display->getComponents() as $name => $component) {
+  // Get fields configured by Layout Builder.
+  if ($display instanceof LayoutEntityDisplayInterface && $display->isLayoutBuilderEnabled()) {
+    foreach ($display->getSections() as $section) {
+      foreach ($section->getComponents() as $component) {
+        $config = $component->get('configuration');
 
-    // Only if entity_class_formatter is used.
-    if (isset($component['type']) && $component['type'] === 'entity_class_formatter') {
-      $field = $entity->get($name);
-      $field_definition = $field->getFieldDefinition();
+        // Only if Entity Class formatter is used.
+        if (isset($config['id']) && isset($config['formatter']['type'])) {
+          $formatter = $config['formatter'];
+          if ($formatter['type'] === 'entity_class_formatter') {
 
-      $prefix = '';
-      // Get prefix to be attached before.
-      if (!empty($component['settings']['prefix'])) {
-        $prefix = $component['settings']['prefix'];
-      }
-      $suffix = '';
-      // Get suffix to be attached after.
-      if (!empty($component['settings']['suffix'])) {
-        $suffix = $component['settings']['suffix'];
-      }
-
-      // Only for entity reference field type.
-      if ($field instanceof EntityReferenceFieldItemListInterface) {
-        foreach ($field->referencedEntities() as $referenced_entity) {
-
-          // Fill title as a class if not empty.
-          $title = $referenced_entity->label();
-          if (!empty($title)) {
-            $build['#attributes']['class'][] = Html::getClass($prefix . $title . $suffix);
+            // Extract field name from the component ID.
+            list (, , , $name) = explode(':', $config['id']);
+            if (!empty($name)) {
+              $fields[$name] = !empty($formatter['settings']) ? $formatter['settings'] : [];
+            }
           }
         }
       }
+    }
+  }
 
-      // Only for boolean field type.
-      elseif ($field_definition->getType() === 'boolean') {
+  // Get fields from standard manage display form.
+  else {
+    foreach ($display->getComponents() as $name => $component) {
 
-        // Fill configured label as a class based on value.
-        if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
-          $label = $field_definition->getSetting('on_label');
-        }
-        else {
-          $label = $field_definition->getSetting('off_label');
-        }
-        $build['#attributes']['class'][] = Html::getClass($prefix . $label . $suffix);
+      // Only if Entity Class formatter is used.
+      if (isset($component['type']) && $component['type'] === 'entity_class_formatter') {
+        $fields[$name] = !empty($component['settings']) ? $component['settings'] : [];
       }
+    }
+  }
 
-      // For other simple fields.
+  // Process all discovered fields.
+  foreach ($fields as $name => $settings) {
+    if (!$entity->hasField($name)) {
+      continue;
+    }
+    $field = $entity->get($name);
+    $field_definition = $field->getFieldDefinition();
+
+    // Get prefix to be attached before.
+    $prefix = !empty($settings['prefix']) ? $settings['prefix'] : '';
+    // Get suffix to be attached after.
+    $suffix = !empty($settings['suffix']) ? $settings['suffix'] : '';
+
+    // Only for entity reference field type.
+    if ($field instanceof EntityReferenceFieldItemListInterface) {
+      foreach ($field->referencedEntities() as $referenced_entity) {
+
+        // Fill title as a class if not empty.
+        $title = $referenced_entity->label();
+        if (!empty($title)) {
+          $build['#attributes']['class'][] = Html::getClass($prefix . $title . $suffix);
+        }
+      }
+    }
+
+    // Only for boolean field type.
+    elseif ($field_definition->getType() === 'boolean') {
+
+      // Fill configured label as a class based on value.
+      if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
+        $label = $field_definition->getSetting('on_label');
+      }
       else {
-        foreach ($field->getValue() as $item) {
+        $label = $field_definition->getSetting('off_label');
+      }
+      $build['#attributes']['class'][] = Html::getClass($prefix . $label . $suffix);
+    }
 
-          // Fill value as a class if not empty.
-          if (!empty($item['value'])) {
+    // For other simple fields.
+    else {
+      foreach ($field->getValue() as $item) {
 
-            // Split value into multiple classes when spaces are used.
-            foreach (explode(' ', $item['value']) as $class) {
-              $build['#attributes']['class'][] = Html::getClass($prefix . $class . $suffix);
-            }
+        // Fill value as a class if not empty.
+        if (!empty($item['value'])) {
+
+          // Split value into multiple classes when spaces are used.
+          foreach (explode(' ', $item['value']) as $class) {
+            $build['#attributes']['class'][] = Html::getClass($prefix . $class . $suffix);
           }
         }
       }
