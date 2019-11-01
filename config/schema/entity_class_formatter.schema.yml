@@ -8,3 +8,6 @@ field.formatter.settings.entity_class_formatter:
     suffix:
       type: string
       label: 'Suffix to be attached after each class'
+    attr:
+      type: string
+      label: 'Attribute name to be used instead of class'

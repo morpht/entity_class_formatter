@@ -29,6 +29,7 @@ class EntityClassFormatter extends FormatterBase {
     return [
       'prefix' => '',
       'suffix' => '',
+      'attr' => '',
     ] + parent::defaultSettings();
   }
 
@@ -46,6 +47,12 @@ class EntityClassFormatter extends FormatterBase {
       '#type' => 'textfield',
       '#title' => $this->t('Suffix to be attached after each class'),
       '#default_value' => $this->getSetting('suffix'),
+    ];
+    $form['attr'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Attribute name to be used instead of class'),
+      '#description' => $this->t('The field value will be escaped and assigned to the attribute you specify here (e.g. "data-value").'),
+      '#default_value' => $this->getSetting('attr'),
     ];
     return $form;
   }
@@ -65,6 +72,12 @@ class EntityClassFormatter extends FormatterBase {
     if (!empty($suffix)) {
       $summary[] = $this->t('Suffix: "@suffix".', [
         '@suffix' => $suffix,
+      ]);
+    }
+    $attr = $this->getSetting('attr');
+    if (!empty($attr)) {
+      $summary[] = $this->t('Attribute: "@attr".', [
+        '@attr' => $attr,
       ]);
     }
     return $summary;

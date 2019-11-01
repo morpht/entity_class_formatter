@@ -63,20 +63,23 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
     }
     $field = $entity->get($name);
     $field_definition = $field->getFieldDefinition();
+    $values = [];
 
     // Get prefix to be attached before.
     $prefix = !empty($settings['prefix']) ? $settings['prefix'] : '';
     // Get suffix to be attached after.
     $suffix = !empty($settings['suffix']) ? $settings['suffix'] : '';
+    // Get attribute name (class by default).
+    $attr = !empty($settings['attr']) ? $settings['attr'] : 'class';
 
     // Only for entity reference field type.
     if ($field instanceof EntityReferenceFieldItemListInterface) {
       foreach ($field->referencedEntities() as $referenced_entity) {
 
-        // Fill title as a class if not empty.
+        // Fill title if not empty.
         $title = $referenced_entity->label();
         if (!empty($title)) {
-          $build['#attributes']['class'][] = Html::getClass($prefix . $title . $suffix);
+          $values[] = $prefix . $title . $suffix;
         }
       }
     }
@@ -84,29 +87,41 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
     // Only for boolean field type.
     elseif ($field_definition->getType() === 'boolean') {
 
-      // Fill configured label as a class based on value.
+      // Fill configured label based on value.
       if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
         $label = $field_definition->getSetting('on_label');
       }
       else {
         $label = $field_definition->getSetting('off_label');
       }
-      $build['#attributes']['class'][] = Html::getClass($prefix . $label . $suffix);
+      $values[] = $prefix . $label . $suffix;
     }
 
     // For other simple fields.
     else {
       foreach ($field->getValue() as $item) {
 
-        // Fill value as a class if not empty.
+        // Fill value if not empty.
         if (!empty($item['value'])) {
 
           // Split value into multiple classes when spaces are used.
-          foreach (explode(' ', $item['value']) as $class) {
-            $build['#attributes']['class'][] = Html::getClass($prefix . $class . $suffix);
+          if ($attr === 'class') {
+            foreach (explode(' ', $item['value']) as $class) {
+              $values[] = $prefix . $class . $suffix;
+            }
+          }
+          else {
+            // Provide other attribute value as it is.
+            $values[] = $prefix . $item['value'] . $suffix;
           }
         }
       }
+    }
+
+    // Process all discovered values.
+    $method = $attr === 'class' ? 'getClass' : 'escape';
+    foreach ($values as $value) {
+      $build['#attributes'][$attr][] = Html::$method($value);
     }
   }
 }

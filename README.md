@@ -4,6 +4,12 @@
 
 Apply class on the entity if it's field is using this formatter.
 
+**Optional configuration:**
+
+* Prefix to be attached before each class.
+* Suffix to be attached after each class.
+* Attribute name to be used instead of class.
+
 ## Maintainers
 
 This module is maintained by developers at Morpht. For more information on

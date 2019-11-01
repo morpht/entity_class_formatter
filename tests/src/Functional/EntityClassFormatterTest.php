@@ -47,6 +47,16 @@ class EntityClassFormatterTest extends BrowserTestBase {
   const CLASS_SUFFIX = '-suffix';
 
   /**
+   * Define test attribute name.
+   */
+  const ATTR_NAME = 'data-test-attr';
+
+  /**
+   * Define test attribute value.
+   */
+  const ATTR_VALUE = 'test attribute value';
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -99,15 +109,37 @@ class EntityClassFormatterTest extends BrowserTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function testAttrValue() {
+    $field_config = $this->createField('string', self::ATTR_NAME);
+
+    $entity = $this->drupalCreateNode([
+      $field_config->getName() => [
+        0 => ['value' => self::ATTR_VALUE],
+      ],
+    ]);
+    $entity->save();
+
+    $this->drupalGet($entity->toUrl());
+    $assert_session = $this->assertSession();
+    $class = self::CLASS_PREFIX . self::ATTR_VALUE . self::CLASS_SUFFIX;
+    $selector = '.node[' . self::ATTR_NAME . '="' . $class . '"]';
+    $assert_session->elementExists('css', $selector);
+  }
+
+  /**
    * Creates a field and sets the formatter.
    *
    * @param string $field_type
    *   The type of field.
+   * @param string $display_attr
+   *   The display attribute name.
    *
    * @return \Drupal\field\Entity\FieldConfig
    *   The newly created field.
    */
-  protected function createField($field_type) {
+  protected function createField($field_type, $display_attr = '') {
     $entity_type = 'node';
     $bundle = 'page';
     $field_name = mb_strtolower($this->randomMachineName());
@@ -137,6 +169,7 @@ class EntityClassFormatterTest extends BrowserTestBase {
       'settings' => [
         'prefix' => self::CLASS_PREFIX,
         'suffix' => self::CLASS_SUFFIX,
+        'attr' => $display_attr,
       ],
     ]);
     $display->save();
