@@ -10,6 +10,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\layout_builder\Entity\LayoutEntityDisplayInterface;
 
 /**
@@ -35,9 +36,9 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
           if ($formatter['type'] === 'entity_class_formatter') {
 
             // Extract field name from the component ID.
-            list (, , , $name) = explode(':', $config['id']);
+            [, , , $name] = explode(':', $config['id']);
             if (!empty($name)) {
-              $fields[$name] = !empty($formatter['settings']) ? $formatter['settings'] : [];
+              $fields[$name][] = !empty($formatter['settings']) ? $formatter['settings'] : [];
             }
           }
         }
@@ -51,77 +52,88 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
 
       // Only if Entity Class formatter is used.
       if (isset($component['type']) && $component['type'] === 'entity_class_formatter') {
-        $fields[$name] = !empty($component['settings']) ? $component['settings'] : [];
+        $fields[$name][] = !empty($component['settings']) ? $component['settings'] : [];
       }
     }
   }
 
   // Process all discovered fields.
-  foreach ($fields as $name => $settings) {
+  foreach ($fields as $name => $settings_set) {
     if (!$entity->hasField($name)) {
       continue;
     }
     $field = $entity->get($name);
-    $field_definition = $field->getFieldDefinition();
-    $values = [];
 
-    // Get prefix to be attached before.
-    $prefix = !empty($settings['prefix']) ? $settings['prefix'] : '';
-    // Get suffix to be attached after.
-    $suffix = !empty($settings['suffix']) ? $settings['suffix'] : '';
-    // Get attribute name (class by default).
-    $attr = !empty($settings['attr']) ? $settings['attr'] : 'class';
+    // Apply settings of every field instance.
+    foreach ($settings_set as $settings) {
+      _entity_class_formatter_apply($build, $field, $settings);
+    }
+  }
+}
 
-    // Only for entity reference field type.
-    if ($field instanceof EntityReferenceFieldItemListInterface) {
-      foreach ($field->referencedEntities() as $referenced_entity) {
+/**
+ * Applies all field values using defined settings.
+ */
+function _entity_class_formatter_apply(array &$build, FieldItemListInterface $field, array $settings) {
+  $values = [];
+  $field_definition = $field->getFieldDefinition();
 
-        // Fill title if not empty.
-        $title = $referenced_entity->label();
-        if (!empty($title)) {
-          $values[] = $prefix . $title . $suffix;
-        }
+  // Get prefix to be attached before.
+  $prefix = !empty($settings['prefix']) ? $settings['prefix'] : '';
+  // Get suffix to be attached after.
+  $suffix = !empty($settings['suffix']) ? $settings['suffix'] : '';
+  // Get attribute name (class by default).
+  $attr = !empty($settings['attr']) ? $settings['attr'] : 'class';
+
+  // Only for entity reference field type.
+  if ($field instanceof EntityReferenceFieldItemListInterface) {
+    foreach ($field->referencedEntities() as $referenced_entity) {
+
+      // Fill title if not empty.
+      $title = $referenced_entity->label();
+      if (!empty($title)) {
+        $values[] = $prefix . $title . $suffix;
       }
     }
+  }
 
-    // Only for boolean field type.
-    elseif ($field_definition->getType() === 'boolean') {
+  // Only for boolean field type.
+  elseif ($field_definition->getType() === 'boolean') {
 
-      // Fill configured label based on value.
-      if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
-        $label = $field_definition->getSetting('on_label');
-      }
-      else {
-        $label = $field_definition->getSetting('off_label');
-      }
-      $values[] = $prefix . $label . $suffix;
+    // Fill configured label based on value.
+    if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
+      $label = $field_definition->getSetting('on_label');
     }
-
-    // For other simple fields.
     else {
-      foreach ($field->getValue() as $item) {
+      $label = $field_definition->getSetting('off_label');
+    }
+    $values[] = $prefix . $label . $suffix;
+  }
 
-        // Fill value if not empty.
-        if (!empty($item['value'])) {
+  // For other simple fields.
+  else {
+    foreach ($field->getValue() as $item) {
 
-          // Split value into multiple classes when spaces are used.
-          if ($attr === 'class') {
-            foreach (explode(' ', $item['value']) as $class) {
-              $values[] = $prefix . $class . $suffix;
-            }
+      // Fill value if not empty.
+      if (!empty($item['value'])) {
+
+        // Split value into multiple classes when spaces are used.
+        if ($attr === 'class') {
+          foreach (explode(' ', $item['value']) as $class) {
+            $values[] = $prefix . $class . $suffix;
           }
-          else {
-            // Provide other attribute value as it is.
-            $values[] = $prefix . $item['value'] . $suffix;
-          }
+        }
+        else {
+          // Provide other attribute value as it is.
+          $values[] = $prefix . $item['value'] . $suffix;
         }
       }
     }
+  }
 
-    // Process all discovered values.
-    $method = $attr === 'class' ? 'getClass' : 'escape';
-    foreach ($values as $value) {
-      $build['#attributes'][$attr][] = Html::$method($value);
-    }
+  // Process all discovered values.
+  $method = $attr === 'class' ? 'getClass' : 'escape';
+  foreach ($values as $value) {
+    $build['#attributes'][$attr][] = Html::$method($value);
   }
 }
