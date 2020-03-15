@@ -14,7 +14,10 @@ use Drupal\Core\Form\FormStateInterface;
  *   label = @Translation("Entity Class"),
  *   field_types = {
  *     "boolean",
+ *     "decimal",
  *     "entity_reference",
+ *     "float",
+ *     "integer",
  *     "list_string",
  *     "string",
  *   }
@@ -53,6 +56,11 @@ class EntityClassFormatter extends FormatterBase {
       '#title' => $this->t('Attribute name to be used instead of class'),
       '#description' => $this->t('The field value will be escaped and assigned to the attribute you specify here (e.g. "data-value").'),
       '#default_value' => $this->getSetting('attr'),
+      '#required' => in_array($this->fieldDefinition->getType(), [
+        'decimal',
+        'float',
+        'integer',
+      ]),
     ];
     return $form;
   }
