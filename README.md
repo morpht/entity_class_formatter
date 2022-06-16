@@ -9,6 +9,7 @@ Apply class on the entity if it's field is using this formatter.
 * Prefix to be attached before each class.
 * Suffix to be attached after each class.
 * Attribute name to be used instead of class.
+* Referenced entity field name to be used instead of label.
 
 ## Maintainers
 

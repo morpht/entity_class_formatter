@@ -11,3 +11,6 @@ field.formatter.settings.entity_class_formatter:
     attr:
       type: string
       label: 'Attribute name to be used instead of class'
+    field:
+      type: string
+      label: 'Referenced entity field name to be used instead of label'

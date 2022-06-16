@@ -33,6 +33,7 @@ class EntityClassFormatter extends FormatterBase {
       'prefix' => '',
       'suffix' => '',
       'attr' => '',
+      'field' => '',
     ] + parent::defaultSettings();
   }
 
@@ -62,6 +63,12 @@ class EntityClassFormatter extends FormatterBase {
         'integer',
       ]),
     ];
+    $form['field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Referenced entity field name to be used instead of label'),
+      '#default_value' => $this->getSetting('field'),
+      '#access' => $this->fieldDefinition->getType() === 'entity_reference',
+    ];
     return $form;
   }
 
@@ -70,23 +77,17 @@ class EntityClassFormatter extends FormatterBase {
    */
   public function settingsSummary() {
     $summary = parent::settingsSummary();
-    $prefix = $this->getSetting('prefix');
-    if (!empty($prefix)) {
-      $summary[] = $this->t('Prefix: "@prefix"', [
-        '@prefix' => $prefix,
-      ]);
-    }
-    $suffix = $this->getSetting('suffix');
-    if (!empty($suffix)) {
-      $summary[] = $this->t('Suffix: "@suffix".', [
-        '@suffix' => $suffix,
-      ]);
-    }
-    $attr = $this->getSetting('attr');
-    if (!empty($attr)) {
-      $summary[] = $this->t('Attribute: "@attr".', [
-        '@attr' => $attr,
-      ]);
+    $mapping = [
+      'prefix' => 'Prefix',
+      'suffix' => 'Suffix',
+      'attr' => 'Attribute',
+      'field' => 'Field',
+    ];
+    foreach ($mapping as $key => $label) {
+      $value = $this->getSetting($key);
+      if (!empty($value)) {
+        $summary[] = $this->t($label) . ': "' . $value . '"';
+      }
     }
     return $summary;
   }

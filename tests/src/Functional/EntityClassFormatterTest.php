@@ -27,6 +27,11 @@ class EntityClassFormatterTest extends BrowserTestBase {
   ];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Define test class for entity field.
    */
   const ENTITY_CLASS = 'test-entity-field-class';
@@ -57,6 +62,11 @@ class EntityClassFormatterTest extends BrowserTestBase {
   const ATTR_VALUE = 'test attribute value';
 
   /**
+   * Define test class for referenced entity field.
+   */
+  const REFERENCED_CLASS = 'test-referenced-field-class';
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -73,6 +83,7 @@ class EntityClassFormatterTest extends BrowserTestBase {
    */
   public function testEntityFieldClass() {
     $field_config = $this->createField('entity_reference');
+    $this->createDisplay($field_config->getName());
 
     $node = $this->drupalCreateNode(['title' => self::ENTITY_CLASS]);
 
@@ -86,7 +97,7 @@ class EntityClassFormatterTest extends BrowserTestBase {
     $this->drupalGet($entity->toUrl());
     $assert_session = $this->assertSession();
     $class = self::CLASS_PREFIX . self::ENTITY_CLASS . self::CLASS_SUFFIX;
-    $assert_session->elementExists('css', '.node.' . $class);
+    $assert_session->elementExists('css', 'article.' . $class);
   }
 
   /**
@@ -94,6 +105,7 @@ class EntityClassFormatterTest extends BrowserTestBase {
    */
   public function testStringFieldClass() {
     $field_config = $this->createField('string');
+    $this->createDisplay($field_config->getName());
 
     $entity = $this->drupalCreateNode([
       $field_config->getName() => [
@@ -105,14 +117,15 @@ class EntityClassFormatterTest extends BrowserTestBase {
     $this->drupalGet($entity->toUrl());
     $assert_session = $this->assertSession();
     $class = self::CLASS_PREFIX . self::STRING_CLASS . self::CLASS_SUFFIX;
-    $assert_session->elementExists('css', '.node.' . $class);
+    $assert_session->elementExists('css', 'article.' . $class);
   }
 
   /**
    * {@inheritdoc}
    */
   public function testAttrValue() {
-    $field_config = $this->createField('string', self::ATTR_NAME);
+    $field_config = $this->createField('string');
+    $this->createDisplay($field_config->getName(), self::ATTR_NAME);
 
     $entity = $this->drupalCreateNode([
       $field_config->getName() => [
@@ -124,28 +137,47 @@ class EntityClassFormatterTest extends BrowserTestBase {
     $this->drupalGet($entity->toUrl());
     $assert_session = $this->assertSession();
     $class = self::CLASS_PREFIX . self::ATTR_VALUE . self::CLASS_SUFFIX;
-    $selector = '.node[' . self::ATTR_NAME . '="' . $class . '"]';
+    $selector = 'article[' . self::ATTR_NAME . '="' . $class . '"]';
     $assert_session->elementExists('css', $selector);
   }
 
   /**
-   * Creates a field and sets the formatter.
+   * {@inheritdoc}
+   */
+  public function testReferencedFieldClass() {
+    $field_config = $this->createField('entity_reference');
+    $referenced_field_config = $this->createField('string');
+    $this->createDisplay($field_config->getName(), '', $referenced_field_config->getName());
+
+    $node = $this->drupalCreateNode([$referenced_field_config->getName() => self::REFERENCED_CLASS]);
+
+    $entity = $this->drupalCreateNode([
+      $field_config->getName() => [
+        0 => ['target_id' => $node->id()],
+      ],
+    ]);
+    $entity->save();
+
+    $this->drupalGet($entity->toUrl());
+    $assert_session = $this->assertSession();
+    $class = self::CLASS_PREFIX . self::REFERENCED_CLASS . self::CLASS_SUFFIX;
+    $assert_session->elementExists('css', 'article.' . $class);
+  }
+
+  /**
+   * Creates a field.
    *
    * @param string $field_type
    *   The type of field.
-   * @param string $display_attr
-   *   The display attribute name.
    *
    * @return \Drupal\field\Entity\FieldConfig
    *   The newly created field.
    */
-  protected function createField($field_type, $display_attr = '') {
-    $entity_type = 'node';
-    $bundle = 'page';
+  protected function createField($field_type) {
     $field_name = mb_strtolower($this->randomMachineName());
 
     $field_storage = FieldStorageConfig::create([
-      'entity_type' => $entity_type,
+      'entity_type' => 'node',
       'field_name' => $field_name,
       'type' => $field_type,
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -154,13 +186,30 @@ class EntityClassFormatterTest extends BrowserTestBase {
 
     $field_config = FieldConfig::create([
       'field_storage' => $field_storage,
-      'bundle' => $bundle,
+      'bundle' => 'page',
     ]);
     $field_config->save();
 
+    return $field_config;
+  }
+
+  /**
+   * Creates a display and sets the formatter.
+   *
+   * @param string $field_name
+   *   The name of field.
+   * @param string $display_attr
+   *   The display attribute name.
+   * @param string $display_field
+   *   The display field name.
+   *
+   * @return \Drupal\Core\Entity\Entity\EntityViewDisplay
+   *   The newly created display.
+   */
+  protected function createDisplay($field_name, $display_attr = '', $display_field = '') {
     $display = EntityViewDisplay::create([
-      'targetEntityType' => $entity_type,
-      'bundle' => $bundle,
+      'targetEntityType' => 'node',
+      'bundle' => 'page',
       'mode' => 'full',
       'status' => TRUE,
     ]);
@@ -170,11 +219,12 @@ class EntityClassFormatterTest extends BrowserTestBase {
         'prefix' => self::CLASS_PREFIX,
         'suffix' => self::CLASS_SUFFIX,
         'attr' => $display_attr,
+        'field' => $display_field,
       ],
     ]);
     $display->save();
 
-    return $field_config;
+    return $display;
   }
 
 }

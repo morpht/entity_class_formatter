@@ -76,7 +76,6 @@ function entity_class_formatter_entity_view_alter(array &$build, EntityInterface
  */
 function _entity_class_formatter_apply(array &$build, FieldItemListInterface $field, array $settings) {
   $values = [];
-  $field_definition = $field->getFieldDefinition();
 
   // Get prefix to be attached before.
   $prefix = !empty($settings['prefix']) ? $settings['prefix'] : '';
@@ -84,15 +83,37 @@ function _entity_class_formatter_apply(array &$build, FieldItemListInterface $fi
   $suffix = !empty($settings['suffix']) ? $settings['suffix'] : '';
   // Get attribute name (class by default).
   $attr = !empty($settings['attr']) ? $settings['attr'] : 'class';
+  // Get referenced entity field name (label callback by default).
+  $inner_field = !empty($settings['field']) ? $settings['field'] : NULL;
+
+  // Extract all field values.
+  _entity_class_formatter_extract($values, $field, $attr, $inner_field);
+
+  // Process all discovered values.
+  $method = $attr === 'class' ? 'getClass' : 'escape';
+  foreach ($values as $value) {
+    $build['#attributes'][$attr][] = Html::$method($prefix . $value . $suffix);
+  }
+}
+
+/**
+ * Extracts all field values.
+ */
+function _entity_class_formatter_extract(array &$values, FieldItemListInterface $field, $attr, $inner_field = NULL) {
+  $field_definition = $field->getFieldDefinition();
 
   // Only for entity reference field type.
   if ($field instanceof EntityReferenceFieldItemListInterface) {
     foreach ($field->referencedEntities() as $referenced_entity) {
 
+      // Fill specified referenced entity field values.
+      if (!empty($inner_field) && $referenced_entity->hasField($inner_field)) {
+        $field = $referenced_entity->get($inner_field);
+        _entity_class_formatter_extract($values, $field, $attr);
+      }
       // Fill title if not empty.
-      $title = $referenced_entity->label();
-      if (!empty($title)) {
-        $values[] = $prefix . $title . $suffix;
+      elseif (!empty($title = $referenced_entity->label())) {
+        $values[] = $title;
       }
     }
   }
@@ -102,12 +123,11 @@ function _entity_class_formatter_apply(array &$build, FieldItemListInterface $fi
 
     // Fill configured label based on value.
     if (filter_var($field->value, FILTER_VALIDATE_BOOLEAN)) {
-      $label = $field_definition->getSetting('on_label');
+      $values[] = $field_definition->getSetting('on_label');
     }
     else {
-      $label = $field_definition->getSetting('off_label');
+      $values[] = $field_definition->getSetting('off_label');
     }
-    $values[] = $prefix . $label . $suffix;
   }
 
   // For other simple fields.
@@ -120,20 +140,14 @@ function _entity_class_formatter_apply(array &$build, FieldItemListInterface $fi
         // Split value into multiple classes when spaces are used.
         if ($attr === 'class') {
           foreach (explode(' ', $item['value']) as $class) {
-            $values[] = $prefix . $class . $suffix;
+            $values[] = $class;
           }
         }
         else {
           // Provide other attribute value as it is.
-          $values[] = $prefix . $item['value'] . $suffix;
+          $values[] = $item['value'];
         }
       }
     }
-  }
-
-  // Process all discovered values.
-  $method = $attr === 'class' ? 'getClass' : 'escape';
-  foreach ($values as $value) {
-    $build['#attributes'][$attr][] = Html::$method($value);
   }
 }
